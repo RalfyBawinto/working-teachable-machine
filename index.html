@@ -2,45 +2,61 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <title>Deteksi With Teachable Machine By Google</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Deteksi Wajah</title>
     <style>
       body {
         font-family: Arial, sans-serif;
         text-align: center;
-        margin-top: 30px;
+        padding: 20px;
       }
       video {
+        width: 100%;
+        max-width: 400px;
+        border-radius: 10px;
         border: 2px solid #444;
-        border-radius: 8px;
-        width: 400px;
-        height: 300px;
       }
       .output {
-        margin-top: 20px;
+        margin-top: 15px;
         font-size: 18px;
         font-weight: bold;
       }
-      button {
+      button,
+      select {
         margin-top: 20px;
         padding: 10px 20px;
         font-size: 16px;
       }
+      #cameraSelectWrapper {
+        display: none;
+        margin-top: 10px;
+      }
     </style>
   </head>
   <body>
-    <h1>Deteksi Wajah</h1>
-    <video id="video" autoplay playsinline muted></video>
-    <canvas id="canvas" width="400" height="300" style="display: none"></canvas>
-    <br />
-    <button onclick="start()">Aktifkan Kamera & Mulai Deteksi</button>
+    <h2>Deteksi Wajah</h2>
 
-    <div class="output" id="face-output">Ekspresi: -</div>
+    <!-- Pilihan kamera hanya muncul di mobile/tablet -->
+    <div id="cameraSelectWrapper">
+      <label for="cameraSelect">Pilih Kamera:</label>
+      <select id="cameraSelect">
+        <option value="user">Depan (Selfie)</option>
+        <option value="environment">Belakang</option>
+      </select>
+    </div>
+
+    <br />
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="canvas" width="400" height="300" style="display: none"></canvas>
+
+    <br />
+    <button onclick="start()">Mulai Deteksi</button>
+
+    <div class="output" id="face-output">Ekspresi Wajah: -</div>
     <div class="output" id="name-output">Nama: -</div>
 
-    <!-- TensorFlow.js wajib -->
+    <!-- TensorFlow.js -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
-
-    <!-- Teachable Machine -->
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
 
     <script>
@@ -51,13 +67,27 @@
 
       let faceModel, faceModel3, video, canvas, ctx;
 
+      // Tampilkan dropdown kamera hanya di mobile/tablet
+      function isMobileDevice() {
+        return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+      }
+
+      if (isMobileDevice()) {
+        document.getElementById("cameraSelectWrapper").style.display = "block";
+      }
+
       async function start() {
         video = document.getElementById("video");
         canvas = document.getElementById("canvas");
         ctx = canvas.getContext("2d");
 
+        let facingMode = "user"; // default kamera depan
+
+        if (isMobileDevice()) {
+          facingMode = document.getElementById("cameraSelect").value;
+        }
+
         try {
-          // Load model wajah dan model wajah 3 (5 kategori manusia)
           faceModel = await tmImage.load(
             faceModelURL + "model.json",
             faceModelURL + "metadata.json"
@@ -67,12 +97,14 @@
             faceModel3URL + "metadata.json"
           );
 
-          // Setup webcam
           const stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
+            video: {
+              facingMode: { ideal: facingMode }, // pakai 'ideal' bukan 'exact'
+            },
+            audio: false,
           });
-          video.srcObject = stream;
 
+          video.srcObject = stream;
           video.onloadedmetadata = () => {
             video.play();
             requestAnimationFrame(loop);
@@ -90,25 +122,23 @@
       }
 
       async function predictFace() {
-        // Prediksi menggunakan model wajah umum (model 1)
         const prediction = await faceModel.predict(canvas);
-        const highestPrediction = prediction.reduce(
+        const highest1 = prediction.reduce(
           (max, p) => (p.probability > max.probability ? p : max),
           { probability: 0 }
         );
         document.getElementById("face-output").innerText = `Ekspresi Wajah: ${
-          highestPrediction.className
-        } (${(highestPrediction.probability * 100).toFixed(1)}%)`;
+          highest1.className
+        } (${(highest1.probability * 100).toFixed(1)}%)`;
 
-        // Prediksi menggunakan model wajah 3 (5 kategori manusia)
         const prediction3 = await faceModel3.predict(canvas);
-        const highestPrediction3 = prediction3.reduce(
+        const highest3 = prediction3.reduce(
           (max, p) => (p.probability > max.probability ? p : max),
           { probability: 0 }
         );
         document.getElementById("name-output").innerText = `Nama: ${
-          highestPrediction3.className
-        } (${(highestPrediction3.probability * 100).toFixed(1)}%)`;
+          highest3.className
+        } (${(highest3.probability * 100).toFixed(1)}%)`;
       }
     </script>
   </body>

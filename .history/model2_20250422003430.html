@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test Mikrofon</title>
+  </head>
+  <body>
+    <h2>Test Mikrofon</h2>
+    <button onclick="startListening()">Mulai Deteksi Suara</button>
+    <p id="status">Status: Menunggu suara...</p>
+
+    <script>
+      async function startListening() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+          });
+          const audioContext = new (window.AudioContext ||
+            window.webkitAudioContext)();
+          const analyser = audioContext.createAnalyser();
+          const source = audioContext.createMediaStreamSource(stream);
+          source.connect(analyser);
+
+          document.getElementById("status").innerText =
+            "Mikrofon aktif, mendeteksi suara...";
+          console.log("Mikrofon aktif");
+        } catch (err) {
+          console.error("Gagal mengakses mikrofon:", err);
+          document.getElementById("status").innerText =
+            "Gagal mengakses mikrofon.";
+        }
+      }
+    </script>
+  </body>
+</html>

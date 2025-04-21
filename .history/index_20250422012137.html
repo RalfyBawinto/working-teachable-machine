@@ -52,7 +52,7 @@
     <video id="video" autoplay muted playsinline></video>
     <canvas id="canvas" width="400" height="300" style="display: none"></canvas>
     <div class="output" id="face-output">Ekspresi Wajah: -</div>
-    <div class="output" id="name-output">Nama: -</div>
+    <div class="output" id="name-output">Nama (Wajah): -</div>
 
     <!-- Kontrol deteksi suara -->
     <button onclick="aktifkanDeteksi()">Aktifkan Kamera dan Mikrofon</button>
@@ -141,31 +141,9 @@
           (max, p) => (p.probability > max.probability ? p : max),
           { probability: 0 }
         );
-
-        // Daftar anggota kelompok 6
-        const anggotaKelompok6 = [
-          "Risky Imbat",
-          "Felygio Tumiwa",
-          "Jeremy Pongdatu",
-          "Ralfy Bawinto",
-          "Muhammad Luhung",
-        ];
-
-        // Ambang batas kepercayaan (misalnya 80%)
-        const threshold = 0.8;
-
-        // Cek apakah hasil terdeteksi termasuk anggota kelompok
-        if (
-          highest3.probability >= threshold &&
-          anggotaKelompok6.includes(highest3.className)
-        ) {
-          document.getElementById("name-output").innerText = `Nama (Wajah): ${
-            highest3.className
-          } (${(highest3.probability * 100).toFixed(1)}%)`;
-        } else {
-          document.getElementById("name-output").innerText =
-            "Nama (Wajah): Bukan anggota kelompok 6";
-        }
+        document.getElementById("name-output").innerText = `Nama (Wajah): ${
+          highest3.className
+        } (${(highest3.probability * 100).toFixed(1)}%)`;
       }
 
       async function aktifkanDeteksi() {

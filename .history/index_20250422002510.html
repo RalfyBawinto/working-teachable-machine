@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Deteksi Wajah & Suara</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding: 20px;
+      }
+      video {
+        width: 100%;
+        max-width: 400px;
+        border-radius: 10px;
+        border: 2px solid #444;
+      }
+      .output {
+        margin-top: 15px;
+        font-size: 18px;
+        font-weight: bold;
+      }
+      button,
+      select {
+        margin-top: 20px;
+        padding: 10px 20px;
+        font-size: 16px;
+      }
+      #cameraSelectWrapper {
+        display: none;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Deteksi Wajah & Suara</h2>
+
+    <div id="cameraSelectWrapper">
+      <label for="cameraSelect">Pilih Kamera:</label>
+      <select id="cameraSelect">
+        <option value="user">Depan (Selfie)</option>
+        <option value="environment">Belakang</option>
+      </select>
+    </div>
+
+    <br />
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="canvas" width="400" height="300" style="display: none"></canvas>
+
+    <br />
+    <button onclick="start()">Mulai Deteksi</button>
+
+    <div class="output" id="face-output">Ekspresi Wajah: -</div>
+    <div class="output" id="name-output">Nama (Wajah): -</div>
+    <div class="output" id="voice-output">Nama (Suara): -</div>
+
+    <!-- TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/audio@0.8/dist/teachablemachine-audio.min.js"></script>
+
+    <script>
+      // Inisialisasi library global jika belum ada
+      window.tmAudio = window.tmAudio || {};
+
+      const faceModelURL =
+        "https://teachablemachine.withgoogle.com/models/oTtv--EQC/";
+      const nameModelURL =
+        "https://teachablemachine.withgoogle.com/models/1E0LcWWmy/";
+      const voiceModelURL =
+        "https://teachablemachine.withgoogle.com/models/K_GdR4c9y/"; // URL model audio
+
+      let faceModel, nameModel, audioModel;
+      let video, canvas, ctx;
+
+      function isMobileDevice() {
+        return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+      }
+
+      if (isMobileDevice()) {
+        document.getElementById("cameraSelectWrapper").style.display = "block";
+      }
+
+      async function start() {
+        video = document.getElementById("video");
+        canvas = document.getElementById("canvas");
+        ctx = canvas.getContext("2d");
+
+        let facingMode = "user";
+        if (isMobileDevice()) {
+          facingMode = document.getElementById("cameraSelect").value;
+        }
+
+        try {
+          // Memuat model wajah dan nama dari kamera
+          faceModel = await tmImage.load(
+            faceModelURL + "model.json",
+            faceModelURL + "metadata.json"
+          );
+          nameModel = await tmImage.load(
+            nameModelURL + "model.json",
+            nameModelURL + "metadata.json"
+          );
+
+          // Memuat model suara dari URL yang benar
+          audioModel = await tmAudio.load(
+            voiceModelURL + "model.json",
+            voiceModelURL + "metadata.json"
+          );
+
+          // Akses kamera
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: facingMode } },
+            audio: false,
+          });
+
+          video.srcObject = stream;
+          video.onloadedmetadata = () => {
+            video.play();
+            requestAnimationFrame(loop);
+          };
+
+          // Jalankan deteksi suara
+          predictVoice();
+        } catch (err) {
+          console.error("Error:", err);
+          let message = "Gagal mengakses kamera atau model.";
+          if (err.message.includes("audio")) {
+            message = "Gagal memuat model suara atau mikrofon tidak tersedia.";
+          } else if (err.message.includes("video")) {
+            message = "Gagal mengakses kamera.";
+          }
+          alert(message);
+        }
+      }
+
+      async function loop() {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        await predictFace();
+        requestAnimationFrame(loop);
+      }
+
+      async function predictFace() {
+        const prediction = await faceModel.predict(canvas);
+        const highest1 = prediction.reduce(
+          (max, p) => (p.probability > max.probability ? p : max),
+          { probability: 0 }
+        );
+        document.getElementById("face-output").innerText = `Ekspresi Wajah: ${
+          highest1.className
+        } (${(highest1.probability * 100).toFixed(1)}%)`;
+
+        const prediction3 = await nameModel.predict(canvas);
+        const highest3 = prediction3.reduce(
+          (max, p) => (p.probability > max.probability ? p : max),
+          { probability: 0 }
+        );
+        document.getElementById("name-output").innerText = `Nama (Wajah): ${
+          highest3.className
+        } (${(highest3.probability * 100).toFixed(1)}%)`;
+      }
+
+      async function predictVoice() {
+        try {
+          await audioModel.listen(
+            async () => {
+              const prediction = await audioModel.predict();
+              const highest = prediction.reduce(
+                (max, p) => (p.probability > max.probability ? p : max),
+                { probability: 0 }
+              );
+              document.getElementById(
+                "voice-output"
+              ).innerText = `Nama (Suara): ${highest.className} (${(
+                highest.probability * 100
+              ).toFixed(1)}%)`;
+            },
+            {
+              probabilityThreshold: 0.85,
+              overlapFactor: 0.5,
+            }
+          );
+        } catch (err) {
+          console.error("Gagal mendengarkan suara:", err);
+          alert("Tidak dapat mengakses mikrofon atau memulai deteksi suara.");
+        }
+      }
+    </script>
+  </body>
+</html>

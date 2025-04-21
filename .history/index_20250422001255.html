@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Aktifkan Mikrofon</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding: 50px;
+      }
+      #status {
+        margin-top: 20px;
+        font-size: 1.2em;
+        color: green;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Aktifkan Mikrofon</h1>
+    <button onclick="aktifkanMikrofon()">Aktifkan Mikrofon</button>
+    <div id="status">Mikrofon belum diaktifkan</div>
+
+    <script>
+      async function aktifkanMikrofon() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+          });
+          document.getElementById("status").textContent = "Mikrofon aktif 🎤";
+          console.log("Mikrofon berhasil diakses", stream);
+
+          // Jika ingin menggunakan stream audio, bisa disambungkan ke AudioContext atau media recorder di sini.
+        } catch (err) {
+          console.error("Gagal mengakses mikrofon:", err);
+          document.getElementById("status").textContent =
+            "Gagal mengakses mikrofon ❌";
+        }
+      }
+    </script>
+  </body>
+</html>

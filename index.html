@@ -4,60 +4,37 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Deteksi Wajah dan Suara</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        text-align: center;
-        padding: 20px;
-      }
-      video {
-        width: 100%;
-        max-width: 400px;
-        border-radius: 10px;
-        border: 2px solid #444;
-      }
-      .output {
-        margin-top: 15px;
-        font-size: 18px;
-        font-weight: bold;
-      }
-      #status {
-        margin-top: 20px;
-        font-size: 1.2em;
-        color: green;
-      }
-      #label-container {
-        margin-top: 15px;
-        font-size: 18px;
-        font-weight: bold;
-      }
-      button {
-        margin-top: 20px;
-        padding: 10px 20px;
-        font-size: 16px;
-        background-color: #4caf50;
-        color: white;
-        border: none;
-        cursor: pointer;
-      }
-      button:hover {
-        background-color: #45a049;
-      }
-    </style>
+    <link rel="stylesheet" href="styles.css" />
   </head>
+
   <body>
     <h2>Deteksi Wajah dan Suara</h2>
 
     <!-- Video untuk deteksi wajah -->
-    <video id="video" autoplay muted playsinline></video>
-    <canvas id="canvas" width="400" height="300" style="display: none"></canvas>
-    <div class="output" id="face-output">Ekspresi Wajah: -</div>
-    <div class="output" id="name-output">Nama: -</div>
+    <div id="video-container">
+      <video id="video" autoplay muted playsinline></video>
+      <canvas
+        id="canvas"
+        width="400"
+        height="300"
+        style="display: none"
+      ></canvas>
+      <div class="output" id="face-output">Ekspresi Wajah: -</div>
+      <div class="output" id="name-output">Nama: -</div>
+    </div>
 
     <!-- Kontrol deteksi suara -->
     <button onclick="aktifkanDeteksi()">Aktifkan Kamera dan Mikrofon</button>
     <div id="status">Mikrofon belum diaktifkan</div>
     <div id="label-container"></div>
+
+    <!-- Tombol untuk beralih ke audio-hewan.html -->
+    <button
+      id="switch-button"
+      onclick="window.location.href='audio-hewan.html'"
+    >
+      Beralih ke Audio Hewan
+    </button>
 
     <!-- TensorFlow.js -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>

@@ -2,7 +2,7 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <title>Deteksi With Teachable Machine By Google</title>
+    <title>Deteksi Wajah & Pose Tubuh</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -34,7 +34,7 @@
     <br />
     <button onclick="start()">Aktifkan Kamera & Mulai Deteksi</button>
 
-    <div class="output" id="face-output">Ekspresi: -</div>
+    <div class="output" id="face-output">Ekspresi Wajah: -</div>
     <div class="output" id="name-output">Nama: -</div>
 
     <!-- TensorFlow.js wajib -->
@@ -92,23 +92,18 @@
       async function predictFace() {
         // Prediksi menggunakan model wajah umum (model 1)
         const prediction = await faceModel.predict(canvas);
-        const highestPrediction = prediction.reduce(
-          (max, p) => (p.probability > max.probability ? p : max),
-          { probability: 0 }
-        );
-        document.getElementById("face-output").innerText = `Ekspresi Wajah: ${
-          highestPrediction.className
-        } (${(highestPrediction.probability * 100).toFixed(1)}%)`;
+        let result = prediction
+          .map((p) => `${p.className}: ${(p.probability * 100).toFixed(1)}%`)
+          .join(" | ");
+        document.getElementById("face-output").innerText =
+          "Ekspresi Wajah: " + result;
 
         // Prediksi menggunakan model wajah 3 (5 kategori manusia)
         const prediction3 = await faceModel3.predict(canvas);
-        const highestPrediction3 = prediction3.reduce(
-          (max, p) => (p.probability > max.probability ? p : max),
-          { probability: 0 }
-        );
-        document.getElementById("name-output").innerText = `Nama: ${
-          highestPrediction3.className
-        } (${(highestPrediction3.probability * 100).toFixed(1)}%)`;
+        let result3 = prediction3
+          .map((p) => `${p.className}: ${(p.probability * 100).toFixed(1)}%`)
+          .join(" | ");
+        document.getElementById("name-output").innerText = "Nama: " + result3;
       }
     </script>
   </body>

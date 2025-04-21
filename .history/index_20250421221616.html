@@ -2,7 +2,7 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <title>Deteksi With Teachable Machine By Google</title>
+    <title>Deteksi Wajah & Pose Tubuh</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -28,28 +28,35 @@
     </style>
   </head>
   <body>
-    <h1>Deteksi Wajah</h1>
+    <h1>Deteksi Wajah & Pose Tubuh</h1>
     <video id="video" autoplay playsinline muted></video>
     <canvas id="canvas" width="400" height="300" style="display: none"></canvas>
     <br />
     <button onclick="start()">Aktifkan Kamera & Mulai Deteksi</button>
 
-    <div class="output" id="face-output">Ekspresi: -</div>
-    <div class="output" id="name-output">Nama: -</div>
+    <div class="output" id="face-output">Wajah: -</div>
+    <div class="output" id="pose-output">Pose: -</div>
 
     <!-- TensorFlow.js wajib -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
 
     <!-- Teachable Machine -->
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
 
     <script>
       const faceModelURL =
         "https://teachablemachine.withgoogle.com/models/oTtv--EQC/";
-      const faceModel3URL =
-        "https://teachablemachine.withgoogle.com/models/1E0LcWWmy/";
+      const poseModelURL =
+        "https://teachablemachine.withgoogle.com/models/2yEqkW4kP/";
 
-      let faceModel, faceModel3, video, canvas, ctx;
+      let faceModel,
+        poseModel,
+        video,
+        canvas,
+        ctx,
+        maxFaceClasses,
+        maxPoseClasses;
 
       async function start() {
         video = document.getElementById("video");
@@ -57,15 +64,17 @@
         ctx = canvas.getContext("2d");
 
         try {
-          // Load model wajah dan model wajah 3 (5 kategori manusia)
+          // Load model wajah dan pose
           faceModel = await tmImage.load(
             faceModelURL + "model.json",
             faceModelURL + "metadata.json"
           );
-          faceModel3 = await tmImage.load(
-            faceModel3URL + "model.json",
-            faceModel3URL + "metadata.json"
+          poseModel = await tmPose.load(
+            poseModelURL + "model.json",
+            poseModelURL + "metadata.json"
           );
+          maxFaceClasses = faceModel.getTotalClasses();
+          maxPoseClasses = poseModel.getTotalClasses();
 
           // Setup webcam
           const stream = await navigator.mediaDevices.getUserMedia({
@@ -86,29 +95,30 @@
       async function loop() {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         await predictFace();
+        await predictPose();
         requestAnimationFrame(loop);
       }
 
       async function predictFace() {
-        // Prediksi menggunakan model wajah umum (model 1)
         const prediction = await faceModel.predict(canvas);
-        const highestPrediction = prediction.reduce(
-          (max, p) => (p.probability > max.probability ? p : max),
-          { probability: 0 }
-        );
-        document.getElementById("face-output").innerText = `Ekspresi Wajah: ${
-          highestPrediction.className
-        } (${(highestPrediction.probability * 100).toFixed(1)}%)`;
+        let result = prediction
+          .map((p) => `${p.className}: ${(p.probability * 100).toFixed(1)}%`)
+          .join(" | ");
+        document.getElementById("face-output").innerText = "Wajah: " + result;
+      }
 
-        // Prediksi menggunakan model wajah 3 (5 kategori manusia)
-        const prediction3 = await faceModel3.predict(canvas);
-        const highestPrediction3 = prediction3.reduce(
-          (max, p) => (p.probability > max.probability ? p : max),
-          { probability: 0 }
-        );
-        document.getElementById("name-output").innerText = `Nama: ${
-          highestPrediction3.className
-        } (${(highestPrediction3.probability * 100).toFixed(1)}%)`;
+      async function predictPose() {
+        const { pose, posenetOutput } = await poseModel.estimatePose(canvas);
+        const prediction = await poseModel.predict(posenetOutput);
+        let highest = { className: "", probability: 0 };
+        prediction.forEach((pred) => {
+          if (pred.probability > highest.probability) {
+            highest = pred;
+          }
+        });
+        document.getElementById("pose-output").innerText = `Pose: ${
+          highest.className
+        } (${(highest.probability * 100).toFixed(1)}%)`;
       }
     </script>
   </body>

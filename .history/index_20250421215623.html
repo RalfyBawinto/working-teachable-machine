@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Deteksi Wajah & Pose Tubuh</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin-top: 20px;
+      }
+      video {
+        border: 2px solid #444;
+        border-radius: 8px;
+        width: 400px;
+        height: 300px;
+      }
+      .output {
+        margin-top: 20px;
+        font-size: 18px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Deteksi Wajah & Pose Tubuh</h1>
+    <video id="webcam" autoplay playsinline muted></video>
+
+    <div class="output" id="face-output">Wajah: -</div>
+    <div class="output" id="pose-output">Pose: -</div>
+
+    <!-- Teachable Machine Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
+
+    <script>
+      // Model URLs
+      const faceModelURL =
+        "https://teachablemachine.withgoogle.com/models/oTtv--EQC/";
+      const poseModelURL =
+        "https://teachablemachine.withgoogle.com/models/2yEqkW4kP/";
+
+      let faceModel, faceMaxPred, poseModel, poseMaxPred;
+      let webcam;
+
+      async function init() {
+        const faceModelLoaded = await tmImage.load(
+          faceModelURL + "model.json",
+          faceModelURL + "metadata.json"
+        );
+        faceModel = faceModelLoaded;
+        faceMaxPred = faceModel.getTotalClasses();
+
+        poseModel = await tmPose.load(
+          poseModelURL + "model.json",
+          poseModelURL + "metadata.json"
+        );
+        poseMaxPred = poseModel.getTotalClasses();
+
+        // Webcam Setup
+        const flip = true;
+        webcam = new tmPose.Webcam(400, 300, flip);
+        await webcam.setup();
+        await webcam.play();
+        window.requestAnimationFrame(loop);
+
+        document.getElementById("webcam").srcObject = webcam.webcam;
+      }
+
+      async function loop() {
+        webcam.update();
+        await predictFace();
+        await predictPose();
+        window.requestAnimationFrame(loop);
+      }
+
+      async function predictFace() {
+        const prediction = await faceModel.predict(webcam.canvas);
+
+        let result = prediction
+          .map((p) => `${p.className}: ${(p.probability * 100).toFixed(1)}%`)
+          .join(" | ");
+        document.getElementById("face-output").innerText = "Wajah: " + result;
+      }
+
+      async function predictPose() {
+        const { pose, posenetOutput } = await poseModel.estimatePose(
+          webcam.canvas
+        );
+        const prediction = await poseModel.predict(posenetOutput);
+
+        let highest = { className: "", probability: 0 };
+        prediction.forEach((pred) => {
+          if (pred.probability > highest.probability) {
+            highest = pred;
+          }
+        });
+
+        document.getElementById("pose-output").innerText = `Pose: ${
+          highest.className
+        } (${(highest.probability * 100).toFixed(1)}%)`;
+      }
+
+      window.onload = init;
+    </script>
+  </body>
+</html>

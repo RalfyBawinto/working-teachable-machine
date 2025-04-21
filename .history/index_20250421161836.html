@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Deteksi Gambar dengan Teachable Machine</title>
+    <style>
+      video,
+      canvas {
+        width: 300px;
+      }
+      #label-container {
+        font-size: 18px;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Model Image Project - Deteksi Ekspresi</h1>
+
+    <div id="webcam-container"></div>
+    <div id="label-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.4/dist/teachablemachine-image.min.js"></script>
+    <script type="text/javascript">
+      const URL = "https://teachablemachine.withgoogle.com/models/8_cjuljCe/"; // ganti dengan link model kamu
+
+      let model, webcam, labelContainer, maxPredictions;
+
+      async function init() {
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
+
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
+
+        webcam = new tmImage.Webcam(300, 300, true);
+        await webcam.setup();
+        await webcam.play();
+        window.requestAnimationFrame(loop);
+
+        document.getElementById("webcam-container").appendChild(webcam.canvas);
+        labelContainer = document.getElementById("label-container");
+      }
+
+      async function loop() {
+        webcam.update();
+        await predict();
+        window.requestAnimationFrame(loop);
+      }
+
+      async function predict() {
+        const prediction = await model.predict(webcam.canvas);
+        labelContainer.innerHTML = "";
+        for (let i = 0; i < maxPredictions; i++) {
+          const classPrediction =
+            prediction[i].className +
+            ": " +
+            Math.round(prediction[i].probability * 100) +
+            "%";
+          labelContainer.innerHTML += classPrediction + "<br>";
+        }
+      }
+
+      init();
+    </script>
+  </body>
+</html>

@@ -17,6 +17,13 @@
       >
         Kembali
       </button>
+      <button
+        id="next-button"
+        class="nav-button"
+        onclick="window.location.href='audio-hewan.html'"
+      >
+        Lanjut
+      </button>
     </div>
 
     <h2>Deteksi Suara Hewan</h2>
@@ -81,7 +88,7 @@
               if (
                 maxLabel !== lastLabel ||
                 scoreDiff > 0.15 ||
-                now - lastUpdateTime > 1000
+                now - lastUpdateTime > 1500
               ) {
                 lastLabel = maxLabel;
                 lastScore = maxScore;

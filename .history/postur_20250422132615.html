@@ -28,9 +28,10 @@
     <div id="webcam-container"></div>
     <div id="output">Postur badan: -</div>
 
-    <!-- TensorFlow.js -->
+    <!-- Tambahkan TensorFlow.js terlebih dahulu -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.20.0/dist/tf.min.js"></script>
-    <!-- Teachable Machine Image library -->
+
+    <!-- Lalu baru Teachable Machine Image -->
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
 
     <script>
@@ -41,47 +42,40 @@
         const modelURL = URL + "model.json";
         const metadataURL = URL + "metadata.json";
 
-        // Load model dan metadata
+        // Load the model and metadata
         model = await tmImage.load(modelURL, metadataURL);
         maxPredictions = model.getTotalClasses();
 
         // Setup webcam
         const flip = true;
-        webcam = new tmImage.Webcam(320, 240, flip); // width, height, flip
-        await webcam.setup(); // minta akses kamera
+        webcam = new tmImage.Webcam(320, 240, flip);
+        await webcam.setup();
         await webcam.play();
         window.requestAnimationFrame(loop);
 
-        // Tempelkan canvas webcam ke HTML
         document.getElementById("webcam-container").appendChild(webcam.canvas);
       }
 
       async function loop() {
-        webcam.update(); // update tiap frame
+        webcam.update();
         await predict();
         window.requestAnimationFrame(loop);
       }
 
       async function predict() {
-        if (!model || !webcam || !webcam.canvas) return;
+        const prediction = await model.predict(webcam.canvas);
+        let highestProb = 0;
+        let posture = "-";
 
-        try {
-          const prediction = await model.predict(webcam.canvas);
-          let highestProb = 0;
-          let posture = "-";
+        prediction.forEach((p) => {
+          if (p.probability > highestProb) {
+            highestProb = p.probability;
+            posture = p.className;
+          }
+        });
 
-          prediction.forEach((p) => {
-            if (p.probability > highestProb) {
-              highestProb = p.probability;
-              posture = p.className;
-            }
-          });
-
-          document.getElementById("output").innerText =
-            "Postur badan: " + posture;
-        } catch (error) {
-          console.error("Error saat prediksi:", error);
-        }
+        document.getElementById("output").innerText =
+          "Postur badan: " + posture;
       }
 
       init();

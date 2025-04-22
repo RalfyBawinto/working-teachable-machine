@@ -24,10 +24,7 @@
     </div>
 
     <h2>Deteksi Suara Lingkungan</h2>
-    <p>
-      (Background noise, Burung pagi, Siulan manusia, tepuk tangan, hening atau
-      sunyi)
-    </p>
+    <p>(Background noise, Burung pagi, Siulan manusia, tepuk tangan, hening)</p>
 
     <button id="toggle-button" onclick="toggleDeteksi()">
       Aktifkan Kamera dan Mikrofon
@@ -146,12 +143,12 @@
           highest3.probability >= threshold &&
           anggotaKelompok6.includes(highest3.className)
         ) {
-          document.getElementById("name-output").innerText = `Nama: ${
+          document.getElementById("name-output").innerText = `Nama (Wajah): ${
             highest3.className
           } (${(highest3.probability * 100).toFixed(1)}%)`;
         } else {
           document.getElementById("name-output").innerText =
-            "Nama: Bukan anggota kelompok 6";
+            "Nama (Wajah): Bukan anggota kelompok 6";
         }
       }
 

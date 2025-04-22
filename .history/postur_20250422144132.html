@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,11 +10,9 @@
         text-align: center;
         padding: 20px;
       }
-      video {
+      canvas {
         border: 2px solid #333;
         border-radius: 10px;
-        width: 320px;
-        height: auto;
       }
       #output {
         margin-top: 20px;
@@ -29,58 +27,62 @@
     <div id="output">Postur badan: -</div>
 
     <!-- TensorFlow.js -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.20.0/dist/tf.min.js"></script>
-    <!-- Teachable Machine Image library -->
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.20.0"></script>
+    <!-- Teachable Machine Pose -->
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
 
     <script>
+      // ✅ Hanya deklarasikan sekali di sini
+      const tmPose = window.tmPose;
+
       const URL = "https://teachablemachine.withgoogle.com/models/2yEqkW4kP/";
-      let model, webcam, maxPredictions;
+      let model, webcam, ctx, maxPredictions;
 
       async function init() {
         const modelURL = URL + "model.json";
         const metadataURL = URL + "metadata.json";
 
-        // Load model dan metadata
-        model = await tmImage.load(modelURL, metadataURL);
+        model = await tmPose.load(modelURL, metadataURL);
         maxPredictions = model.getTotalClasses();
 
-        // Setup webcam
+        const size = 400;
         const flip = true;
-        webcam = new tmImage.Webcam(320, 240, flip); // width, height, flip
-        await webcam.setup(); // minta akses kamera
+        webcam = new tmPose.Webcam(size, size, flip);
+        await webcam.setup();
         await webcam.play();
         window.requestAnimationFrame(loop);
 
-        // Tempelkan canvas webcam ke HTML
         document.getElementById("webcam-container").appendChild(webcam.canvas);
+        ctx = webcam.canvas.getContext("2d");
       }
 
       async function loop() {
-        webcam.update(); // update tiap frame
+        webcam.update();
         await predict();
         window.requestAnimationFrame(loop);
       }
 
       async function predict() {
-        if (!model || !webcam || !webcam.canvas) return;
+        const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
+        const prediction = await model.predict(posenetOutput);
 
-        try {
-          const prediction = await model.predict(webcam.canvas);
-          let highestProb = 0;
-          let posture = "-";
+        let highestProb = 0;
+        let posture = "-";
 
-          prediction.forEach((p) => {
-            if (p.probability > highestProb) {
-              highestProb = p.probability;
-              posture = p.className;
-            }
-          });
+        prediction.forEach((p) => {
+          if (p.probability > highestProb) {
+            highestProb = p.probability;
+            posture = p.className;
+          }
+        });
 
-          document.getElementById("output").innerText =
-            "Postur badan: " + posture;
-        } catch (error) {
-          console.error("Error saat prediksi:", error);
+        document.getElementById("output").innerText =
+          "Postur badan: " + posture;
+
+        ctx.drawImage(webcam.canvas, 0, 0);
+        if (pose) {
+          tmPose.drawPose(pose, ctx);
+          tmPose.drawKeypoints(pose.keypoints, 0.6, ctx);
         }
       }
 

@@ -11,6 +11,7 @@
     <h2>Deteksi Wajah Manusia</h2>
     <p>Anggota Kelompok 6</p>
 
+    <!-- Video untuk deteksi wajah -->
     <div id="video-container">
       <video id="video" autoplay muted playsinline></video>
       <canvas
@@ -25,16 +26,18 @@
 
     <h2>Deteksi Suara Lingkungan</h2>
     <p>
-      (Background noise, Burung pagi, Siulan manusia, tepuk tangan, hening atau
-      sunyi)
+      (Bacground noise, Burung pagi, Siulan manusia, tepuk tangan dan
+      hening/sunyi)
     </p>
 
+    <!-- Kontrol deteksi suara -->
     <button id="toggle-button" onclick="toggleDeteksi()">
       Aktifkan Kamera dan Mikrofon
     </button>
     <div id="status">Mikrofon belum diaktifkan</div>
     <div id="label-container"></div>
 
+    <!-- Tombol untuk beralih ke audio-hewan.html -->
     <button
       id="switch-button"
       onclick="window.location.href='audio-hewan.html'"
@@ -42,7 +45,7 @@
       Beralih ke Audio Hewan
     </button>
 
-    <!-- TensorFlow.js & Teachable Machine -->
+    <!-- TensorFlow.js -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/speech-commands@0.4.0/dist/speech-commands.min.js"></script>
@@ -60,9 +63,6 @@
       let lastVoiceLabel = "";
       let lastVoiceScore = 0;
       let lastVoiceUpdateTime = 0;
-      let isDeteksiAktif = false;
-      let videoStreamTrack = null;
-      let audioStreamTrack = null;
 
       async function createModel() {
         const checkpointURL = URL + "model.json";
@@ -97,11 +97,9 @@
           });
 
           video.srcObject = stream;
-          videoStreamTrack = stream.getVideoTracks()[0];
-
           video.onloadedmetadata = () => {
             video.play();
-            loop(); // Mulai loop deteksi wajah
+            requestAnimationFrame(loop);
           };
         } catch (err) {
           console.error("Error:", err);
@@ -114,7 +112,7 @@
         await predictFace();
         setTimeout(() => {
           requestAnimationFrame(loop);
-        }, 800); // Delay 800ms antar prediksi
+        }, 500); // Delay 500ms antar prediksi agar tidak terlalu cepat
       }
 
       async function predictFace() {
@@ -123,6 +121,7 @@
           (max, p) => (p.probability > max.probability ? p : max),
           { probability: 0 }
         );
+
         document.getElementById("face-output").innerText = `Ekspresi Wajah: ${
           highest1.className
         } (${(highest1.probability * 100).toFixed(1)}%)`;
@@ -146,12 +145,12 @@
           highest3.probability >= threshold &&
           anggotaKelompok6.includes(highest3.className)
         ) {
-          document.getElementById("name-output").innerText = `Nama: ${
+          document.getElementById("name-output").innerText = `Nama (Wajah): ${
             highest3.className
           } (${(highest3.probability * 100).toFixed(1)}%)`;
         } else {
           document.getElementById("name-output").innerText =
-            "Nama: Bukan anggota kelompok 6";
+            "Nama (Wajah): Bukan anggota kelompok 6";
         }
       }
 
@@ -159,15 +158,7 @@
         try {
           const stream = await navigator.mediaDevices.getUserMedia({
             audio: true,
-            video: true,
           });
-
-          audioStreamTrack = stream.getAudioTracks()[0];
-          videoStreamTrack = stream.getVideoTracks()[0];
-          isDeteksiAktif = true;
-
-          document.getElementById("toggle-button").textContent =
-            "Matikan Kamera dan Mikrofon";
           document.getElementById("status").textContent = "Mikrofon aktif 🎤";
 
           await createModel();
@@ -213,23 +204,15 @@
 
           startFaceDetection();
         } catch (err) {
-          console.error("Gagal mengakses mikrofon/kamera:", err);
+          console.error("Gagal mengakses mikrofon:", err);
           document.getElementById("status").textContent =
-            "Gagal mengakses mikrofon/kamera ❌";
+            "Gagal mengakses mikrofon ❌";
         }
       }
 
-      function matikanDeteksi() {
-        if (audioStreamTrack) audioStreamTrack.stop();
-        if (videoStreamTrack) videoStreamTrack.stop();
-        if (recognizer) recognizer.stopListening();
-
-        isDeteksiAktif = false;
-        document.getElementById("toggle-button").textContent =
-          "Aktifkan Kamera dan Mikrofon";
-        document.getElementById("status").textContent = "Mikrofon dimatikan";
-        document.getElementById("label-container").innerHTML = "";
-      }
+      let isDeteksiAktif = false;
+      let mediaStream = null;
+      let loopId = null;
 
       async function toggleDeteksi() {
         if (isDeteksiAktif) {
@@ -237,6 +220,94 @@
         } else {
           await aktifkanDeteksi();
         }
+      }
+
+      async function aktifkanDeteksi() {
+        try {
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+            video: { facingMode: "user" },
+          });
+
+          // Tampilkan stream ke video
+          video = document.getElementById("video");
+          canvas = document.getElementById("canvas");
+          ctx = canvas.getContext("2d");
+          video.srcObject = mediaStream;
+          video.onloadedmetadata = () => {
+            video.play();
+            loopId = requestAnimationFrame(loop);
+          };
+
+          isDeteksiAktif = true;
+          document.getElementById("toggle-button").textContent =
+            "Matikan Kamera dan Mikrofon";
+          document.getElementById("status").textContent = "Mikrofon aktif 🎤";
+
+          await createModel();
+          const classLabels = recognizer.wordLabels();
+          const labelContainer = document.getElementById("label-container");
+          labelContainer.innerHTML = "";
+
+          recognizer.listen(
+            (result) => {
+              const scores = result.scores;
+              let maxScore = -1;
+              let maxLabel = "";
+              for (let i = 0; i < scores.length; i++) {
+                if (scores[i] > maxScore) {
+                  maxScore = scores[i];
+                  maxLabel = classLabels[i];
+                }
+              }
+              const percentage = (maxScore * 100).toFixed(2);
+              labelContainer.innerHTML = `${maxLabel}: ${percentage}%`;
+            },
+            {
+              includeSpectrogram: true,
+              probabilityThreshold: 0.75,
+              invokeCallbackOnNoiseAndUnknown: true,
+              overlapFactor: 0.5,
+            }
+          );
+
+          // Load model wajah dan nama
+          faceModel = await tmImage.load(
+            faceModelURL + "model.json",
+            faceModelURL + "metadata.json"
+          );
+          nameModel = await tmImage.load(
+            nameModelURL + "model.json",
+            nameModelURL + "metadata.json"
+          );
+        } catch (err) {
+          console.error("Gagal mengakses mikrofon/kamera:", err);
+          document.getElementById("status").textContent =
+            "Gagal mengakses mikrofon/kamera ❌";
+        }
+      }
+
+      function matikanDeteksi() {
+        if (mediaStream) {
+          mediaStream.getTracks().forEach((track) => track.stop());
+          mediaStream = null;
+        }
+
+        if (recognizer) recognizer.stopListening();
+
+        if (loopId) {
+          cancelAnimationFrame(loopId);
+          loopId = null;
+        }
+
+        const video = document.getElementById("video");
+        video.srcObject = null;
+
+        isDeteksiAktif = false;
+        document.getElementById("toggle-button").textContent =
+          "Aktifkan Kamera dan Mikrofon";
+        document.getElementById("status").textContent = "Mikrofon dimatikan";
+        document.getElementById("label-container").innerHTML = "";
       }
     </script>
   </body>

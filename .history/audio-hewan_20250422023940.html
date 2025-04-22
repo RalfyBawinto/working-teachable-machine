@@ -17,10 +17,16 @@
       >
         Kembali
       </button>
+      <button
+        id="next-button"
+        class="nav-button"
+        onclick="window.location.href='audio-hewan.html'"
+      >
+        Lanjut
+      </button>
     </div>
 
-    <h2>Deteksi Suara Hewan</h2>
-    <p>(Burung, Anjing, Jangkrik)</p>
+    <h2>Deteksi Suara Hewan (Burung, Anjing, Jangkrik)</h2>
     <button onclick="aktifkanDeteksi()">Mulai Deteksi Suara</button>
     <div id="mic-status">🎤 Mic belum aktif</div>
     <div id="output">Suara Hewan: -</div>
@@ -32,9 +38,6 @@
     <script type="text/javascript">
       const URL = "https://teachablemachine.withgoogle.com/models/S6mA-uAt0/";
       let recognizer;
-      let lastUpdateTime = 0;
-      let lastLabel = "";
-      let lastScore = 0;
 
       async function createModel() {
         const checkpointURL = URL + "model.json";
@@ -57,16 +60,20 @@
           document.getElementById("mic-status").textContent =
             "🎤 Mic aktif - Dengarkan suara...";
 
-          // Muat model suara
+          // Setelah mikrofon aktif, muat model suara
           await createModel();
+
+          // Menampilkan label kategori suara
           const classLabels = recognizer.wordLabels();
 
+          // Mulai mendeteksi suara
           recognizer.listen(
             (result) => {
               const scores = result.scores;
+
+              // Temukan nilai tertinggi
               let maxScore = -1;
               let maxLabel = "";
-
               for (let i = 0; i < scores.length; i++) {
                 if (scores[i] > maxScore) {
                   maxScore = scores[i];
@@ -74,24 +81,13 @@
                 }
               }
 
-              const now = Date.now();
-              const scoreDiff = Math.abs(maxScore - lastScore);
+              // Konversi skor tertinggi menjadi persentase
+              const percentage = (maxScore * 100).toFixed(2);
 
-              // Tampilkan jika label berubah, atau skor beda jauh, atau sudah lewat 1.5 detik
-              if (
-                maxLabel !== lastLabel ||
-                scoreDiff > 0.15 ||
-                now - lastUpdateTime > 1000
-              ) {
-                lastLabel = maxLabel;
-                lastScore = maxScore;
-                lastUpdateTime = now;
-
-                const percentage = (maxScore * 100).toFixed(2);
-                document.getElementById(
-                  "output"
-                ).innerHTML = `Suara Hewan: ${maxLabel} (${percentage}%)`;
-              }
+              // Tampilkan hanya kategori dengan nilai tertinggi
+              document.getElementById(
+                "output"
+              ).innerHTML = `Suara Hewan: ${maxLabel} (${percentage}%)`;
             },
             {
               includeSpectrogram: true,

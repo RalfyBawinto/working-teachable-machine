@@ -73,6 +73,8 @@ button:hover {
   transition: background-color 0.3s ease;
 }
 
+/* Agar tidak bertabrakan dengan #next-button */
+
 #switch-button:hover {
   background-color: #0b7dda;
 }

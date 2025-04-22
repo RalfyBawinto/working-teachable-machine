@@ -24,6 +24,7 @@ button {
   width: 100%;
   max-width: 200px;
   transition: background-color 0.3s ease;
+  right: 20px;
 }
 
 button:hover {
@@ -71,6 +72,13 @@ button:hover {
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.3s ease;
+}
+
+/* Agar tidak bertabrakan dengan #next-button */
+@media (min-width: 769px) {
+  #switch-button {
+    right: 150px;
+  }
 }
 
 #switch-button:hover {

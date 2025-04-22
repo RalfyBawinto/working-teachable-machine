@@ -8,9 +8,9 @@
   </head>
 
   <body>
-    <h2>Deteksi Wajah Manusia</h2>
-    <p>Anggota Kelompok 6</p>
+    <h2>Deteksi Wajah Anggota Kelompok 6</h2>
 
+    <!-- Video untuk deteksi wajah -->
     <div id="video-container">
       <video id="video" autoplay muted playsinline></video>
       <canvas
@@ -25,16 +25,16 @@
 
     <h2>Deteksi Suara Lingkungan</h2>
     <p>
-      (Background noise, Burung pagi, Siulan manusia, tepuk tangan, hening atau
-      sunyi)
+      bacground noise, burung pagi, siulan manusia, tepuk tangan dan hening atau
+      sunyi
     </p>
 
-    <button id="toggle-button" onclick="toggleDeteksi()">
-      Aktifkan Kamera dan Mikrofon
-    </button>
+    <!-- Kontrol deteksi suara -->
+    <button onclick="aktifkanDeteksi()">Aktifkan Kamera dan Mikrofon</button>
     <div id="status">Mikrofon belum diaktifkan</div>
     <div id="label-container"></div>
 
+    <!-- Tombol untuk beralih ke audio-hewan.html -->
     <button
       id="switch-button"
       onclick="window.location.href='audio-hewan.html'"
@@ -42,7 +42,7 @@
       Beralih ke Audio Hewan
     </button>
 
-    <!-- TensorFlow.js & Teachable Machine -->
+    <!-- TensorFlow.js -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/speech-commands@0.4.0/dist/speech-commands.min.js"></script>
@@ -57,16 +57,10 @@
       let faceModel, nameModel, recognizer;
       let video, canvas, ctx;
 
-      let lastVoiceLabel = "";
-      let lastVoiceScore = 0;
-      let lastVoiceUpdateTime = 0;
-      let isDeteksiAktif = false;
-      let videoStreamTrack = null;
-      let audioStreamTrack = null;
-
       async function createModel() {
         const checkpointURL = URL + "model.json";
         const metadataURL = URL + "metadata.json";
+
         recognizer = speechCommands.create(
           "BROWSER_FFT",
           undefined,
@@ -82,6 +76,7 @@
         ctx = canvas.getContext("2d");
 
         try {
+          // Memuat model wajah dan nama
           faceModel = await tmImage.load(
             faceModelURL + "model.json",
             faceModelURL + "metadata.json"
@@ -91,17 +86,16 @@
             nameModelURL + "metadata.json"
           );
 
+          // Akses kamera
           const stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: "user" },
             audio: false,
           });
 
           video.srcObject = stream;
-          videoStreamTrack = stream.getVideoTracks()[0];
-
           video.onloadedmetadata = () => {
             video.play();
-            loop(); // Mulai loop deteksi wajah
+            requestAnimationFrame(loop);
           };
         } catch (err) {
           console.error("Error:", err);
@@ -112,9 +106,7 @@
       async function loop() {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         await predictFace();
-        setTimeout(() => {
-          requestAnimationFrame(loop);
-        }, 800); // Delay 800ms antar prediksi
+        requestAnimationFrame(loop);
       }
 
       async function predictFace() {
@@ -133,6 +125,7 @@
           { probability: 0 }
         );
 
+        // Daftar anggota kelompok 6
         const anggotaKelompok6 = [
           "Risky Imbat",
           "Felygio Tumiwa",
@@ -140,18 +133,21 @@
           "Ralfy Bawinto",
           "Muhammad Luhung",
         ];
+
+        // Ambang batas kepercayaan (misalnya 80%)
         const threshold = 0.8;
 
+        // Cek apakah hasil terdeteksi termasuk anggota kelompok
         if (
           highest3.probability >= threshold &&
           anggotaKelompok6.includes(highest3.className)
         ) {
-          document.getElementById("name-output").innerText = `Nama: ${
+          document.getElementById("name-output").innerText = `Nama (Wajah): ${
             highest3.className
           } (${(highest3.probability * 100).toFixed(1)}%)`;
         } else {
           document.getElementById("name-output").innerText =
-            "Nama: Bukan anggota kelompok 6";
+            "Nama (Wajah): Bukan anggota kelompok 6";
         }
       }
 
@@ -159,25 +155,23 @@
         try {
           const stream = await navigator.mediaDevices.getUserMedia({
             audio: true,
-            video: true,
           });
-
-          audioStreamTrack = stream.getAudioTracks()[0];
-          videoStreamTrack = stream.getVideoTracks()[0];
-          isDeteksiAktif = true;
-
-          document.getElementById("toggle-button").textContent =
-            "Matikan Kamera dan Mikrofon";
           document.getElementById("status").textContent = "Mikrofon aktif 🎤";
 
+          // Setelah mikrofon aktif, muat model suara
           await createModel();
           const classLabels = recognizer.wordLabels();
-          const labelContainer = document.getElementById("label-container");
-          labelContainer.innerHTML = "";
 
+          // Menampilkan label kategori suara
+          const labelContainer = document.getElementById("label-container");
+          labelContainer.innerHTML = ""; // Clear previous results
+
+          // Mulai mendeteksi suara
           recognizer.listen(
             (result) => {
               const scores = result.scores;
+
+              // Temukan nilai tertinggi
               let maxScore = -1;
               let maxLabel = "";
               for (let i = 0; i < scores.length; i++) {
@@ -187,21 +181,11 @@
                 }
               }
 
-              const now = Date.now();
-              const scoreDiff = Math.abs(maxScore - lastVoiceScore);
+              // Konversi skor tertinggi menjadi persentase
+              const percentage = (maxScore * 100).toFixed(2);
 
-              if (
-                maxLabel !== lastVoiceLabel ||
-                scoreDiff > 0.15 ||
-                now - lastVoiceUpdateTime > 1500
-              ) {
-                lastVoiceLabel = maxLabel;
-                lastVoiceScore = maxScore;
-                lastVoiceUpdateTime = now;
-
-                const percentage = (maxScore * 100).toFixed(2);
-                labelContainer.innerHTML = `${maxLabel}: ${percentage}%`;
-              }
+              // Tampilkan hanya kategori dengan nilai tertinggi
+              labelContainer.innerHTML = `${maxLabel}: ${percentage}%`;
             },
             {
               includeSpectrogram: true,
@@ -211,31 +195,12 @@
             }
           );
 
+          // Mulai deteksi wajah
           startFaceDetection();
         } catch (err) {
-          console.error("Gagal mengakses mikrofon/kamera:", err);
+          console.error("Gagal mengakses mikrofon:", err);
           document.getElementById("status").textContent =
-            "Gagal mengakses mikrofon/kamera ❌";
-        }
-      }
-
-      function matikanDeteksi() {
-        if (audioStreamTrack) audioStreamTrack.stop();
-        if (videoStreamTrack) videoStreamTrack.stop();
-        if (recognizer) recognizer.stopListening();
-
-        isDeteksiAktif = false;
-        document.getElementById("toggle-button").textContent =
-          "Aktifkan Kamera dan Mikrofon";
-        document.getElementById("status").textContent = "Mikrofon dimatikan";
-        document.getElementById("label-container").innerHTML = "";
-      }
-
-      async function toggleDeteksi() {
-        if (isDeteksiAktif) {
-          matikanDeteksi();
-        } else {
-          await aktifkanDeteksi();
+            "Gagal mengakses mikrofon ❌";
         }
       }
     </script>

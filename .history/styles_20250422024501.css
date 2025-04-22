@@ -35,7 +35,7 @@ button:hover {
 #next-button {
   position: absolute;
   top: 20px;
-  padding: 20px;
+  padding: 10px 20px;
   font-size: 16px;
   border: none;
   border-radius: 6px;
@@ -71,6 +71,13 @@ button:hover {
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.3s ease;
+}
+
+/* Agar tidak bertabrakan dengan #next-button */
+@media (min-width: 769px) {
+  #switch-button {
+    right: 150px;
+  }
 }
 
 #switch-button:hover {

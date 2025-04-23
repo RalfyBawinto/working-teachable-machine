@@ -157,56 +157,19 @@
 
       async function aktifkanDeteksi() {
         try {
-          // Cek dan minta izin akses kamera dan mikrofon
-          const statusMic = await navigator.permissions.query({
-            name: "microphone",
-          });
-          const statusCam = await navigator.permissions.query({
-            name: "camera",
-          });
-
-          if (statusMic.state === "denied" || statusCam.state === "denied") {
-            alert(
-              "Izin kamera/mikrofon ditolak. Silakan aktifkan secara manual di pengaturan browser."
-            );
-            return;
-          }
-
           const stream = await navigator.mediaDevices.getUserMedia({
             audio: true,
-            video: { facingMode: "user" },
+            video: true,
           });
-
-          video = document.getElementById("video");
-          canvas = document.getElementById("canvas");
-          ctx = canvas.getContext("2d");
-
-          video.srcObject = stream;
 
           audioStreamTrack = stream.getAudioTracks()[0];
           videoStreamTrack = stream.getVideoTracks()[0];
-
           isDeteksiAktif = true;
+
           document.getElementById("toggle-button").textContent =
             "Matikan Kamera dan Mikrofon";
           document.getElementById("status").textContent = "Mikrofon aktif 🎤";
 
-          video.onloadedmetadata = () => {
-            video.play();
-            loop(); // Mulai loop deteksi wajah
-          };
-
-          // Load model wajah dan nama
-          faceModel = await tmImage.load(
-            faceModelURL + "model.json",
-            faceModelURL + "metadata.json"
-          );
-          nameModel = await tmImage.load(
-            nameModelURL + "model.json",
-            nameModelURL + "metadata.json"
-          );
-
-          // Load model suara
           await createModel();
           const classLabels = recognizer.wordLabels();
           const labelContainer = document.getElementById("label-container");
@@ -247,11 +210,10 @@
               overlapFactor: 0.5,
             }
           );
+
+          startFaceDetection();
         } catch (err) {
           console.error("Gagal mengakses mikrofon/kamera:", err);
-          alert(
-            "Gagal mengakses kamera/mikrofon. Pastikan browser kamu punya izin."
-          );
           document.getElementById("status").textContent =
             "Gagal mengakses mikrofon/kamera ❌";
         }

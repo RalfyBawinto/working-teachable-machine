@@ -157,17 +157,20 @@
 
       async function aktifkanDeteksi() {
         try {
-          // Cek dan minta izin akses kamera dan mikrofon
-          const statusMic = await navigator.permissions.query({
-            name: "microphone",
-          });
-          const statusCam = await navigator.permissions.query({
+          // Minta izin eksplisit ke kamera dan mic
+          const permissions = await navigator.permissions.query({
             name: "camera",
           });
+          const micPermissions = await navigator.permissions.query({
+            name: "microphone",
+          });
 
-          if (statusMic.state === "denied" || statusCam.state === "denied") {
+          if (
+            permissions.state === "denied" ||
+            micPermissions.state === "denied"
+          ) {
             alert(
-              "Izin kamera/mikrofon ditolak. Silakan aktifkan secara manual di pengaturan browser."
+              "Izin kamera atau mikrofon ditolak. Silakan aktifkan izin di pengaturan browser."
             );
             return;
           }
@@ -177,34 +180,24 @@
             video: { facingMode: "user" },
           });
 
+          // Setel video
           video = document.getElementById("video");
           canvas = document.getElementById("canvas");
           ctx = canvas.getContext("2d");
-
           video.srcObject = stream;
 
           audioStreamTrack = stream.getAudioTracks()[0];
           videoStreamTrack = stream.getVideoTracks()[0];
 
+          video.onloadedmetadata = () => {
+            video.play();
+            loop();
+          };
+
           isDeteksiAktif = true;
           document.getElementById("toggle-button").textContent =
             "Matikan Kamera dan Mikrofon";
           document.getElementById("status").textContent = "Mikrofon aktif 🎤";
-
-          video.onloadedmetadata = () => {
-            video.play();
-            loop(); // Mulai loop deteksi wajah
-          };
-
-          // Load model wajah dan nama
-          faceModel = await tmImage.load(
-            faceModelURL + "model.json",
-            faceModelURL + "metadata.json"
-          );
-          nameModel = await tmImage.load(
-            nameModelURL + "model.json",
-            nameModelURL + "metadata.json"
-          );
 
           // Load model suara
           await createModel();
@@ -247,11 +240,19 @@
               overlapFactor: 0.5,
             }
           );
+
+          // Load model wajah & nama
+          faceModel = await tmImage.load(
+            faceModelURL + "model.json",
+            faceModelURL + "metadata.json"
+          );
+          nameModel = await tmImage.load(
+            nameModelURL + "model.json",
+            nameModelURL + "metadata.json"
+          );
         } catch (err) {
           console.error("Gagal mengakses mikrofon/kamera:", err);
-          alert(
-            "Gagal mengakses kamera/mikrofon. Pastikan browser kamu punya izin."
-          );
+          alert("Gagal mengakses kamera/mikrofon: " + err.message);
           document.getElementById("status").textContent =
             "Gagal mengakses mikrofon/kamera ❌";
         }
